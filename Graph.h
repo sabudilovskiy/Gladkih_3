@@ -92,27 +92,43 @@ public:
         return Tree(root);
     }
     std::vector<int> find_shortest_ways(int index){
+        //будем использовать алгоритм дейкстры
         if (0 <= index && index <= n) {
+            //создаём вектор, где будем хранить пометки вершин
             std::vector<int> marks;
+            //все метки по умолчанию равны бесконечности
             marks.resize(n, INT_MAX);
+            //отмечаем, пройдена вершина или нет
             std::vector<bool> was;
-            was.resize(n);
+            //по умолчанию все не пройдены
+            was.resize(n, false);
+            //расстояние от нашей вершины до нашей вершины равно 0. Это начало алгоритма
             marks[index] = 0;
             int min = -1;
             int min_value = INT_MAX;
             do {
+                //ищем вершину, пометка, которая наименьшая и не пройдена
                 min_value = INT_MAX;
                 min = -1;
-                for (int i = 0; i < n; i++) if (!was[i] && min_value > marks[i]){
-                    min = i;
-                    min_value = marks[i];
+                for (int i = 0; i < n; i++) {
+                    //если вершина не была и её пометка меньше чем минимум, то обновляем последний
+                    if (!was[i] && min_value > marks[i]) {
+                        min = i;
+                        min_value = marks[i];
+                    }
                 }
+                //если такая вершина нашлась
                 if (min != -1){
+                    //отмечаем, что она пройдена
                     was[min] = true;
+                    //проходим все соседние с ней на предмет более короткого маршрута, то есть сумма метки вершины, на которой мы находимся и цена ребра меньше, чем метка другой вершины
                     int min_numbers = vertex[min]->get_number_childs();
                     for (int j = 0; j < min_numbers; j++){
+                        //получаем номер вершины в графе
                         int index_j = vertex[min]->check_child(j).get_value();
+                        //считаем новую стоимость пути
                         int new_cost = vertex[min]->get_cost(j) + marks[min];
+                        //если он меньше текущей метки, то обновляем последнюю
                         if (marks[index_j] > new_cost){
                             marks[index_j] = new_cost;
                         }
@@ -120,6 +136,7 @@ public:
                 }
             }
             while (min != -1);
+            //если все вершины пройдены, то мы получили результирующий вектор
             return marks;
         }
 
