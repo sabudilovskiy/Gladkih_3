@@ -141,6 +141,96 @@ public:
         }
 
     }
+    //Алгоритм Эдмондса — Карпа
+    int max_flow_problem(int index_source, int index_runoff){
+        if (index_source != index_runoff && 0 <= index_source && index_source < n && 0 <= index_runoff && index_runoff < n){
+            std::vector<std::vector<int>> flow;
+            //заводим вектор из векторов. В нём будем хранить текущие потоки. Значения максимальных потоков останутся в изначальном графе.
+            flow.resize(n);
+            for (int i = 0; i < n; i++){
+                // для каждой вершины заводим вектор, в котором будет описан текущий поток
+                flow[i].resize(vertex[i]->get_number_childs());
+            }
+            std::vector<int> min_route; //наикратчайший путь
+            do {
+                std::vector<bool> was; //создаём вектор, в котором будем отмечать, пройдена ли вершина(во время обхода)
+                was.resize(n);
+                std::vector<Node *> que; //создаём очередь для обхода в ширину. Она будет использоваться для нахождения кратчайшего незаполненного максимально пути из источника в сток
+                std::vector<std::vector<int>> que_route; //тут будем запоминать для каждой вершины путь в неё(записываться будет индекс потомка в родительском ноде)
+                que.push_back(vertex[index_source]); //начинаем цикл с добавления источника
+                que_route.emplace_back(); //путь до него пуст, так как он начало
+                bool found = false; //если найдём кратчайший путь, то цикл завершаем
+                while (!found && !que.empty()) {
+                    min_route.clear();
+                    //берём из очереди первую вершину
+                    Node *cur = que[0];
+                    //отмечаем вершину пройденной
+                    was[cur->get_value()] = true;
+                    //проходим всех непройденных детей
+                    for (int i = 0; !found && i < cur->get_number_childs(); i++) {
+                        //если i потомок не пройден и поток по соответствующему ребру не забит полностью
+                        if (!was[cur->check_child(i).get_value()] && flow[cur->get_value()][i] < cur->get_cost(i)) {
+                            //если это не сток, то добавляем его в конец очереди, его путь - это путь родителя + его номер
+                            if (cur->check_child(i).get_value() != index_runoff) {
+                                //добавляем в очередь вершин потомка
+                                que.push_back(&(cur->get_child(i)));
+                                //в очередь с путями добавляем путь до вершины + её номер
+                                que_route.push_back(que_route[0]);
+                                (que_route.end() - 1)->push_back(i);
+                            }
+                            else {
+                                //если это сток, то это минимальный путь по определению(до него мы добрались первым)
+                                min_route = que_route[0];
+                                min_route.push_back(i);
+                                found = true;
+                            }
+                        }
+                    }
+                    //удаляем из очереди обработанную вершину
+                    que.erase(que.begin());
+                    //и путь к ней тоже
+                    que_route.erase(que_route.begin());
+                }
+                //если путь был найден
+                if (!min_route.empty()){
+                    //теперь нам надо установить наименьшую разницу между вместимостью на ребре и текущим потоком: именно на эту величину будет увеличен текущий поток по всему пути
+                    Node *cur_node = vertex[index_source];
+                    int min_value = INT_MAX;
+                    for (int i = 0; i < min_route.size(); i++) {
+                        //если минимум больше разницы между максимальным потоком и текущим, то обновляем последний
+                        if (min_value > cur_node->get_cost(min_route[i]) - flow[cur_node->get_value()][min_route[i]]) {
+                            min_value = cur_node->get_cost(min_route[i]);
+                        }
+                        //сдвигаем текущий указатель
+                        cur_node = &(cur_node->get_child(min_route[i]));
+                    }
+                    //теперь проходим ещё раз и увеличиваем поток
+                    cur_node = vertex[index_source];
+                    for (int i = 0; i < min_route.size(); i++) {
+                        //увеличиваем поток по нужной нам вершине
+                        flow[cur_node->get_value()][min_route[i]] += min_value;
+                        //сдвигаем текущий указатель
+                        cur_node = &(cur_node->get_child(min_route[i]));
+                    }
+                }
+            }
+            while (!min_route.empty()); //пока находятся пути
+            int sum = 0; //считаем итоговый поток
+            //проходим все вершины
+            for (int i = 0; i < n; i++){
+                //проходим всех потомков
+                for (int j = 0; j < vertex[i]->get_number_childs(); j++){
+                    //если вершина связана со стоком
+                    if (vertex[i]->check_child(j).get_value() == index_runoff){
+                        //то поток из неё в него суммируем
+                        sum+=flow[i][j];
+                    }
+                }
+            }
+            //возвращаем суммарный поток
+            return sum;
+        }
+    }
 };
 
 
